@@ -1,48 +1,28 @@
 import fs from "fs";
 import path from "path";
+import paths from "./paths.js";
 
-// Valida que la ruta y el nombre del archivo sean proporcionados
-const validateFilePathAndName = (filepath, filename) => {
-    if (!filepath) throw new Error("La ruta del archivo no fue proporcionada.");
-    if (!filename) throw new Error("El nombre del archivo no fue proporcionado.");
-};
+class FileSystem {
+    #filepath;
 
-// Lee el contenido de un archivo
-export const readFile = async (filepath, filename) => {
-    validateFilePathAndName(filepath, filename);
+    constructor (filename) {
+        this.#filepath = path.join(paths.files, filename);
+    }
 
-    try {
-        const content = await fs.promises.readFile(path.join(filepath, filename), "utf8");
+    read = async () => {
+
+        const contentJSON = await fs.promises.readFile(this.#filepath, "utf8") || "[]";
+        const content = JSON.parse(contentJSON);
         return content;
-    } catch (error) {
-        throw new Error("Error al leer el archivo");
-    }
-};
+    };
 
-// Escribe contenido en un archivo
-export const writeFile = async (filepath, filename, content) => {
-    validateFilePathAndName(filepath, filename);
+    write = async (content) => {
 
-    if (!content) throw new Error("El contenido no fue proporcionado.");
+        if (!content) throw new Error("No has enviado contenido");
 
-    try {
-        await fs.promises.writeFile(path.join(filepath, filename), content, "utf8");
-    } catch (error) {
-        throw new Error("Error al escribir el archivo");
-    }
-};
+        const contentJSON = JSON.stringify(content, null, "\t");
+        return await fs.promises.writeFile(this.#filepath, contentJSON);
+    };
+}
 
-// Elimina un archivo
-export const deleteFile = async (filepath, filename) => {
-    validateFilePathAndName(filepath, filename);
-
-    try {
-        await fs.promises.unlink(path.join(filepath, filename));
-    } catch (error) {
-        if (error.code === "ENOENT") {
-            console.warn("El archivo no existe.");
-        } else {
-            throw new Error("Error al eliminar el archivo");
-        }
-    }
-};
+export default FileSystem;

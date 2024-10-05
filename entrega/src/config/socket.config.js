@@ -1,59 +1,48 @@
+import ProductController from "../controllers/product.controller.js";
 import { Server } from "socket.io";
-import ProductManager from "../managers/product.manager.js";
-import { writeFile } from "../utils/fileSystem.js";
-import paths from "../utils/paths.js";
-import { generateNameForFile } from "../utils/random.js";
+import url from "url";
 
-const productManager = new ProductManager();
-let serverSocket = null;
+let serverIO = null;
 
-// Configura el servidor Socket
-export const config = (serverHTTP) => {
-    // Crea una nueva instancia de Server con el servidor HTTP proporcionado
-    serverSocket = new Server(
-        serverHTTP,
-        {
-            maxHttpBufferSize: 5e6, // Permitir archivos hasta 5MB (por defecto es 1MB)
-        },
-    );
+const config = (serverHTTP) => {
 
-    // Escucha el evento de conexión de un nuevo socket
-    serverSocket.on("connection", async (socket) => {
-        const response = await productManager.getAll({ limit: 100 });
-        console.log("Socket connected");
+    const productController = new ProductController();
 
-        // Envía la lista de productos al cliente que se conecta
-        serverSocket.emit("products-list", response);
+    serverIO = new Server(serverHTTP);
 
-        // Escucha el evento para insertar un nuevo producto
-        socket.on("insert-product", async (data) => {
-            if (data?.file) {
-                const filename = generateNameForFile(data.file.name);
-                await writeFile(paths.images, filename, data.file.buffer);
+    console.log("Servidor conectado");
 
-                await productManager.insertOne(data, filename);
-                const response = await productManager.getAll({ limit: 100 });
+    serverIO.on("connection", async (socket) => {
 
-                // Envía la lista de productos actualizada después de insertar
-                serverSocket.emit("products-list", response);
+        console.log("Se conecto el cliente " + socket.id);
+
+        const queryParams = url.parse(socket.handshake.headers.referer, true).query;
+        const products = await productController.getAll(queryParams);
+
+        serverIO.emit("products-list", { products });
+
+        socket.on("product-delete", async (data) => {
+
+            const productFound = await productMgr.getOneProductById(data.productId);
+
+            if(productFound){
+                productMgr.deleteOneProduct(data.productId);
             }
         });
 
-        // Escucha el evento para eliminar un producto
-        socket.on("delete-product", async (data) => {
-            await productManager.deleteOneById(data.id);
-            const response = await productManager.getAll({ limit: 100 });
-
-            // Envía la lista de productos actualizada después de eliminar
-            serverSocket.emit("products-list", response);
+        socket.on("disconnect", () => {
+            console.log("Se desconecto un cliente");
         });
     });
 };
 
-// Función para actualizar la lista de productos
-export const updateProductsList = async () => {
-    const response = await productManager.getAll({ limit: 100 });
+const updateProductsList = (products) => {
 
-    // Envía la lista de productos actualizada
-    serverSocket.emit("products-list", { response });
+    if(serverIO){
+
+        serverIO.emit("products-list", { products });
+
+    }
 };
+
+export default { config, updateProductsList };

@@ -1,38 +1,30 @@
 <header>
-    <h1>CARRITO</h1>
+    <h1>Carrito de Compras</h1>
 </header>
-
-<main class="container-cart">
-    <section class="container-cart__details">
-        <h3>Detalles</h3>
-        <ul>
-            <li>ID: <b>{{data._id}}</b></li>
-            <li>Creado: <i>{{data.createdAt}}hs</i></li>
-            <li>Actualizado: <i>{{data.updatedAt}}hs</i></li>
-        </ul>
-    </section>
-
-    <section class="container-cart__table">
-        <h3>Productos</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Título</th>
-                    <th>Cantidad</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{#each data.products}}
-                <tr>
-                    <td>{{this.product._id}}</td>
-                    <td>{{this.product.title}}</td>
-                    <td>{{this.quantity}}</td>
-                </tr>
-                {{/each}}
-            </tbody>
-        </table>
-
-        <a href="/"><button title="Volver al inicio">↶</button></a>
-    </section>
+<main style="justify-content: center;">
+    <div class="cart">
+        <div class="cart-header">
+            <h2>Mis Productos</h2>
+        </div>
+        <div class="cart-items">
+            {{#each cart}}
+            <div class="cart-item">
+                <img src="{{getProp this 'product.thumbnail'}}" alt="Producto">
+                <div class="cart-item-info">
+                    <h3>Marca: {{getProp this 'product.title'}}</h3>
+                    <p>Modelo: {{getProp this 'product.description'}}</p>
+                    <p>Precio: {{getProp this 'product.price'}}</p>
+                    <p>Cantidad: {{getProp this "quantity"}}</p>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+        <div class="cart-footer">
+            <h3>Total: {{getTotal cart}}</h3>
+            <button class="checkout-btn" style="width: 25%;">Proceder al Pago</button>
+        </div>
+    </div>
 </main>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/cart.js"></script>

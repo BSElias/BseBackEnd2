@@ -1,27 +1,25 @@
 import passport from "passport";
-import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
-import UserManager from "../managers/user.manager.js";
+import { ExtractJwt, Strategy as JwtStrategy } from "passport-jwt";
+import UserService from "../services/user.service.js";
+import dotenv from "dotenv";
 
-const userManager = new UserManager();
+dotenv.config({ path: ".env.dev" });
 
-const extractCookie = (req) => {
-    if (req.cookies) {
-        return req.cookies["cookieAuthToken"];
-    }
+const userService = new UserService();
 
-    return null;
+const jwtHeaderOptions = {
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey: process.env.SECRET_KEY,
 };
 
-const getJwtOptions = () => {
-    return {
-        jwtFromRequest: ExtractJwt.fromExtractors([extractCookie]),
-        secretOrKey: process.env.SECRET_KEY,
-    };
+const jwtCookieOptions = {
+    jwtFromRequest: (req) => req.cookies ? req.cookies["token"] : null,
+    secretOrKey: process.env.SECRET_KEY,
 };
 
 const handleLogin = async (payload, done) => {
     try {
-        const user = await userManager.getOneById(payload.id);
+        const user = await userService.findOneById(payload.id);
         return done(null, user);
     } catch (error) {
         return done(null, false, { message: error.message });
@@ -30,26 +28,8 @@ const handleLogin = async (payload, done) => {
 
 export const config = (server) => {
 
-    passport.use("current", new JwtStrategy(getJwtOptions(), handleLogin));
-
-    passport.serializeUser((user, done) => {
-        const sessionData = {
-            id: user._id?.toString(),
-            name: user.name,
-            email: user.email,
-            age: user.age,
-        };
-        done(null, sessionData);
-    });
-
-    passport.deserializeUser(async (sessionData, done) => {
-        try {
-            const user = await userManager.getOneById(sessionData.id);
-            done(null, user);
-        } catch (error) {
-            done(error.message);
-        }
-    });
+    passport.use("header-current", new JwtStrategy(jwtHeaderOptions, handleLogin));
+    passport.use("cookie-current", new JwtStrategy(jwtCookieOptions, handleLogin));
 
     server.use(passport.initialize()); // Middleware para inicializa Passport
 

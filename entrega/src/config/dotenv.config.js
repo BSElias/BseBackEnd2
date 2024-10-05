@@ -9,6 +9,7 @@ export const config = (paths) => {
         .parse(process.argv);
 
     const options = command.opts();
+
     dotenv.config({
         path: (options.env === "PROD" ? paths.env.prod : paths.env.dev),
     });
